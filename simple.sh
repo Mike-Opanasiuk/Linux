@@ -1,127 +1,80 @@
-#! /bin/bash
- 
 function Menu() {
     echo "----------- MENU -----------"
-    echo "1. AddUser"
-    echo " 2. RemoveUser"
-    echo "  3. EditUser"
-    echo "    4. CreateGroup"
-    echo "      5. AddUserToTheGroup"
-    echo "        6. RemoveUserFromTheGroup"
+    echo "1. Show all disks"
+    echo " 2. Show disk space"
+    echo "  3. Add partition on disk"
+    echo "   4. Edit fstab"
+    echo "    5. Restart system"
     echo "0. EXIT"
 }
- 
-function AddUser()
-{
-read -r -p "Do you want to add user?: " choise
-if [[ $choise == y || $choise == yes ]];
-then 
-echo -e "How are you going to add the user? \na) - Add user with name\nb) - Add user with name and uid\nc) - Add password to user\n"
-read -r -p "Enter your choise: " choise2
-fi
-if [[ $choise2 == a ]]
-then
-read -r -p "Enter user name to add: " user
-useradd $user
-if [ $? != 0 ];
-then 
-echo "User $user already exists"
-else 
-echo "User $user complited"
-fi
-elif [[ $choise2 == b ]]
-then
-read -r -p "Enter user name to add: " user
-read -r -p "Enter user uid to add: " uid
-useradd $user -u $uid
-if [ $? != 0 ];
-then 
-echo "User $user already exists"
-else 
-echo "User $user complited"
-fi
-elif [[ $choise2 == c ]]
-then
-read -r -p "Enter user name to add password: " user
-sudo passwd $user
-else echo "You have choosen a wrong variant"
-fi
-}
-   
-   function RemoveUser()
-   {
-   read -r -p "Enter a nick of user you are going to delete: " userdelete
-   userdel $userdelete -r
-   }
-   function EditUser()
-   {
-   echo -e "How do you want to edit the user?\na) - User name\nb) - User id\nc) - User gid\n"
-   read -r -p "Enter your choise: " choise
-   if [[ $choise == a ]]
-	then 
-	read -r -p "Enter a user nick to change the nick: " nickOld
-	read -r -p "Enter a new users nick: " nickNew
-	usermod $nickOld -l $nickNew
-	elif [[ $choise == b ]]
-	then 
-	read -r -p "Enter a user nick to change id: " nick
-	read -r -p "Enter a new users id: " idNew
-	usermod $nick -u $idNew
-	elif [[ $choise == c ]]
-	then 
-	read -r -p "Enter a users nick to change id: " nick
-	read -r -p "Enter a new users gid: " gidNew
-	usermod $nick -g $gidNew
-	else echo -e "You have entered a wrong variant\nError"
-	fi
-   }
 
-   function CreateGroup()
-   {
-   read -r -p "Enter a group name to create: " group_name
-   read -r -p "Enter a group ip to create the group: " group_id
-   groupadd $group_name -g $group_id
-   echo "The group was created successfully!"
-   }
-   
-   function AddUserToTheGroup()
-   {
-   read -r -p "Enter a group name to add the user there: " group_name
-      read -r -p "Enter a user nick to add to the group: " user_nick
-	  usermod -aG $group_name $user_nick
-	  echo "The user $user_nick was added to the group $group_name successfully!"
-   }
-   function RemoveUserFromTheGroup
-   {
-    read -r -p "Enter a group name to remove the user from there: " group_name
-      read -r -p "Enter a user nick to remove from the group: " user_nick
-	  gpasswd -d $user_nick $group_name
-   	  echo "The user $user_nick was deleted from the group $group_name successfully!"
-   }
- 
+function ShowAllDisks() {
+ls -l /dev/sd*
+}
+
+function ShowDiskSpace() {
+#df -Th
+parted -l
+
+}
+function AddPartition() {
+read -r -p "Enter disk name to add partition(/dev/*) * - enter:" name
+fdisk /dev/$name
+}
+function MakeFS() {
+read -r -p "Enter partition name to make file system(/dev/*) * - enter:" namedisk
+mkfs.ext4 /dev/$namedisk
+}
+function Mount() {
+read -r -p "Enter partition name to mount folder(/dev/*) * - enter: " namepart
+read -r -p "Enter folder name to mount: " folderpath
+mount /dev/$namepart $folderpath 
+}
+
+function Fstab() {
+read -r -p "Enter partition name to fstab:" part
+uid=$(blkid | grep -Eo $part.* | grep -Eo "UUID=.* " | grep -Eo "[0-9]+[a-z].* " | grep -Eo '^[^" TYPE]*')
+read -r -p "Enter path to fstab partition: " path
+echo "UUID=$uid $path  ext4   defaults   0 0" >> /etc/fstab
+}
 exit=true
 while [ $exit == true ]
 do
     Menu;
 read -r -p "Enter your choise : " choise
-    if [[ $choise == 1 ]] 
+    if [[ $choise == 1 ]]
         then
-        AddUser;
+        ShowAllDisks;
     elif [[ $choise == 2 ]]
          then
-         RemoveUser;
+        ShowDiskSpace;
     elif [[ $choise == 3 ]]
         then
-        EditUser;
+echo "--Menu--"
+echo "a - Add partition"
+echo "b - Make file system"
+echo "c - Mount to folder"
+read -r -p "Enter your choise: " choise3
+if [[ $choise3 == a ]]
+then
+AddPartition;
+elif [[ $choise3 == b ]]
+then
+MakeFS;
+elif [[ $choise3 == c ]]
+then
+Mount;
+else
+echo "ERROR"
+fi
+        echo "Add new partition on disk"
     elif [[ $choise == 4 ]]
         then
-        CreateGroup;
+        Fstab;
     elif [[ $choise == 5 ]]
         then
-        AddUserToTheGroup;
-    elif [[ $choise == 6 ]]
-        then
-        RemoveUserFromTheGroup;
+        echo "Restarting system"
+        reboot now
     elif [[ $choise == 0 ]]
         then
         exit=false
@@ -129,3 +82,5 @@ read -r -p "Enter your choise : " choise
         echo "ERROR"
     fi
 done
+
+
